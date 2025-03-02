@@ -1,5 +1,12 @@
+const SignalApi = require('./signal_api');
+
+jest.mock('./signal_api', () => ({
+    send_message: jest.fn(),
+    send_attachment: jest.fn()
+}));
+
 const parse = require('./rhyzal_parser');
-const signal_api = require('./signal_api');
+
 
 describe('rhyzal_parser', () => {
 
@@ -32,28 +39,27 @@ script:
         on_receive:
             user_status: completed
 `;
-    let SignalAPI;
+
     beforeEach(() => {
-        SignalAPI = jest.mock('./signal_api', () => ({
-            send_message: jest.fn(),
-            send_attachment: jest.fn()
-        }));
+        jest.clearAllMocks();
     });
 
 
     it('should send the appropriate message', () => {
         const message1 = 'Another message with no variables!';
         const message2 = 'A second message to be sent a few seconds later.';
+        SignalApi.send_message('Not the right message')
+
         parse(test_yaml, 1);
-        expect(SignalAPI.send_message).toHaveBeenCalledWith(message1);
-        expect(SignalAPI.send_message).toHaveBeenCalledWith(message2);
-        expect(SignalAPI.send_attachment).toHaveBeenCalledWith('filevar');
+        expect(SignalApi.send_message).toHaveBeenCalledWith(message1);
+        expect(SignalApi.send_message).toHaveBeenCalledWith(message2);
+        expect(SignalApi.send_attachment).toHaveBeenCalledWith('filevar');
     });
 
-    // it('should throw an error for invalid input', () => {
-    //     const input = 'invalid input';
-    //     expect(() => parse(input)).toThrow('Invalid input');
-    // });
+    it('should throw an error for invalid input', () => {
+        const input = 'invalid yaml input';
+        expect(() => parse(input)).toThrow('Invalid yaml input');
+    });
 
   // Add more test cases as needed
 });
