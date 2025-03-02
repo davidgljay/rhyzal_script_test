@@ -1,0 +1,8 @@
+{
+  "name": "rhyzal_script_test",
+  "version": "1.0.0",
+  "description": "A development environment for parsing rhyzal scripts.",
+  "main": "index.js",
+  "author": "David Jay <davidgljay@gmail.com>",
+  "license": "MIT"
+}
