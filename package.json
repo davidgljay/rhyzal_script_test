@@ -4,5 +4,8 @@
   "description": "A development environment for parsing rhyzal scripts.",
   "main": "index.js",
   "author": "David Jay <davidgljay@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
 }
