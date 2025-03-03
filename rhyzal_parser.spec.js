@@ -5,7 +5,7 @@ jest.mock('./signal_api', () => ({
     send_attachment: jest.fn()
 }));
 
-const parse = require('./rhyzal_parser');
+const RhyzalParser = require('./rhyzal_parser');
 
 
 describe('rhyzal_parser', () => {
@@ -18,12 +18,12 @@ script:
         on_receive:
             if:
                 or:
-                - regexmatch
-                - function
+                  - regexmatch
+                  - function
             then:
                 user_status: 2
                 set_profile:
-                name: get_name(response)
+                  name: get_name(response)
             else:
                 user_status: 3
             default:
@@ -45,24 +45,29 @@ script:
     it('should send the appropriate message', () => {
         const message1 = 'Another message with no variables!';
         const message2 = 'A second message to be sent a few seconds later.';
+        const parser = new RhyzalParser(test_yaml);
+        parser.send(1, {});
 
-        parse(test_yaml, 1, {});
         expect(SignalApi.send_message).toHaveBeenCalledWith(message1);
         expect(SignalApi.send_message).toHaveBeenCalledWith(message2);
         expect(SignalApi.send_attachment).toHaveBeenCalledWith('filevar');
     });
 
-    it('should throw an error for invalid input', () => {
-        const input = 'invalid yaml input';
-        expect(() => parse(input)).toThrow('Invalid yaml input');
-    });
-
     it ('should send the appropriate message with variables', () => {
         const message = 'Message with foo to bar!';
         const vars = {var1: 'foo', var2: 'bar'};
-
-        parse(test_yaml, 0, vars);
+        const parser = new RhyzalParser(test_yaml);
+        parser.send(0, vars);
         expect(SignalApi.send_message).toHaveBeenCalledWith(message);
+    });
+
+    it('should throw an error for invalid input', () => {
+        const invalid = `
+invalid_yaml: {{ action }} message {{ message_type }}
+        `;
+        expect(() => new RhyzalParser(invalid)).toThrowError(/^Invalid yaml input/);
+        const parser2 = new RhyzalParser(test_yaml);
+        expect(() => parser2.send(2, {})).toThrow('Step missing from script');
     });
 
 });
