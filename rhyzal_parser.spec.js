@@ -22,13 +22,11 @@ script:
             - Message with {{var1}} to {{var2}}!
         on_receive:
             if:
-                or:
-                  - regexmatch
-                  - function
+                - regex(var1, 'foo')
                 then:
                     user_status: 2
                     set_profile:
-                    name: get_name(response)
+                    name: user_name
             else:
                 user_status: 3
             default:
