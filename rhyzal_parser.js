@@ -28,6 +28,9 @@ class RhyzalParser {
             if (!this.script) {
                 throw new Error('Script not initialized');
             }
+            if (step == 'done') {
+                return;
+            };
             if (!this.script[step]) {
                 throw new Error('Step missing from script');
             }
@@ -60,7 +63,9 @@ class RhyzalParser {
     evaluate_receive(script, vars) {
         switch(Object.keys(script)[0]) {
             case 'user_status':
-                set_user_status(vars.user_id, script['user_status']);
+                const new_status = script['user_status'];
+                set_user_status(vars.user_id, new_status);
+                this.send(new_status, vars);
                 break;
             case 'set_profile':
                 set_user_profile(vars.user_id, script['set_profile']);
