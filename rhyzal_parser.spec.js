@@ -21,15 +21,13 @@ script:
         send:
             - Message with {{var1}} to {{var2}}!
         on_receive:
-            if: regex(var1, 'foo')
+            if: regex(var1, /foo/)
             then:
                 - user_status: 2
                 - set_profile:
                     name: user_name
             else:
                 user_status: 3
-            default:
-                user_status: 4
     1:
         send:
             - Another message with no variables!
@@ -103,11 +101,11 @@ script:
             expect(graphql.set_user_status).toHaveBeenCalledWith(1, 'completed');
         });
 
-        // it ('should update a user\'s status based on a condition', () => {
-        //     const parser = new RhyzalParser(test_yaml);
-        //     parser.receive(0, {user_id: 1, var1: 'foo', time_since_last_message: 20000});
-        //     expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
-        // })
+        it ('should update a user\'s status based on a condition', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.receive(0, {user_id: 1, var1: 'foo', time_since_last_message: 20000});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        })
 
     });
 
