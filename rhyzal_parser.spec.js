@@ -1,8 +1,13 @@
 const SignalApi = require('./signal_api');
+const graphql = require('./graphql');
 
 jest.mock('./signal_api', () => ({
     send_message: jest.fn(),
     send_attachment: jest.fn()
+}));
+
+jest.mock('./graphql', () => ({
+    set_user_status: jest.fn()
 }));
 
 const RhyzalParser = require('./rhyzal_parser');
@@ -20,10 +25,10 @@ script:
                 or:
                   - regexmatch
                   - function
-            then:
-                user_status: 2
-                set_profile:
-                  name: get_name(response)
+                then:
+                    user_status: 2
+                    set_profile:
+                    name: get_name(response)
             else:
                 user_status: 3
             default:
@@ -59,6 +64,12 @@ script:
         const parser = new RhyzalParser(test_yaml);
         parser.send(0, vars);
         expect(SignalApi.send_message).toHaveBeenCalledWith(message);
+    });
+
+    it('should update a user\'s status on receive', () => {
+        const parser = new RhyzalParser(test_yaml);
+        parser.receive(1, {user_id: 1});
+        expect(graphql.set_user_status).toHaveBeenCalledWith(1, 'completed');
     });
 
     it('should throw an error for invalid input', () => {
