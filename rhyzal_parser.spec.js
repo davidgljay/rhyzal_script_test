@@ -7,10 +7,12 @@ jest.mock('./signal_api', () => ({
 }));
 
 jest.mock('./graphql', () => ({
-    set_user_status: jest.fn()
+    set_user_status: jest.fn(),
+    set_user_profile: jest.fn()
 }));
 
 const RhyzalParser = require('./rhyzal_parser');
+const { set_user_profile } = require('./graphql');
 
 
 describe('rhyzal_parser', () => {
@@ -27,7 +29,7 @@ script:
                 - set_profile:
                     name: user_name
             else:
-                user_status: 3
+                - user_status: 3
     1:
         send:
             - Another message with no variables!
@@ -90,7 +92,7 @@ script:
 
         it('should throw an error if the step is missing from the script', () => {
             const parser = new RhyzalParser(test_yaml);
-            expect(() => parser.send(2, {})).toThrow('Step missing from script');
+            expect(() => parser.receive(2, {})).toThrow('Step missing from script');
         });
 
    
@@ -103,9 +105,15 @@ script:
 
         it ('should update a user\'s status based on a condition', () => {
             const parser = new RhyzalParser(test_yaml);
-            parser.receive(0, {user_id: 1, var1: 'foo', time_since_last_message: 20000});
+            parser.receive(0, {user_id: 1, var1: 'foo'});
             expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
-        })
+        });
+
+        it('should update a user\'s status differently if a different condition is met', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.receive(0, {user_id: 1, var1: 'bar'});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 3);
+        });
 
     });
 
@@ -114,6 +122,12 @@ script:
             const parser = new RhyzalParser(test_yaml);
             parser.evaluate_receive({user_status: 2}, {user_id: 1});
             expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        });
+
+        it('should set the user profile', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({set_profile: {name: 'user_name'}}, {user_id: 1});
+            expect(graphql.set_user_profile).toHaveBeenCalledWith(1, {name: 'user_name'});
         });
 
         it('should evaluate an if condition', () => {

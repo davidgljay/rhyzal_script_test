@@ -1,6 +1,6 @@
 const yaml = require('js-yaml');
 const { send_message, send_attachment } = require('./signal_api');
-const { set_user_status } = require('./graphql');
+const { set_user_status, set_user_profile } = require('./graphql');
 
 
 /* 
@@ -54,15 +54,16 @@ class RhyzalParser {
         if (!this.script[step]) {
             throw new Error('Step missing from script');
         }
-        const on_receive = this.script[step].on_receive;
-        this.evaluate_receive(on_receive, vars);
-
+        this.evaluate_receive(this.script[step].on_receive, vars);
     }
 
     evaluate_receive(script, vars) {
         switch(Object.keys(script)[0]) {
             case 'user_status':
                 set_user_status(vars.user_id, script['user_status']);
+                break;
+            case 'set_profile':
+                set_user_profile(vars.user_id, script['set_profile']);
                 break;
             case 'if':
                 if (this.evaluate_condition(script.if, vars)) {
@@ -71,7 +72,7 @@ class RhyzalParser {
                     }
                 } else {
                     if (script.else) {
-                        for (let i = 0; i < script.then.length; i++) {
+                        for (let i = 0; i < script.else.length; i++) {
                             this.evaluate_receive(script.else[i], vars);
                         }
                     }

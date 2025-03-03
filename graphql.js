@@ -7,17 +7,14 @@
 // });
 
 const set_user_status = (userId, status) => {
-    return new Promise((resolve, reject) => {
-        client.set(`user:${userId}:status`, status, (err, reply) => {
-            if (err) {
-                return reject(err);
-            }
-            resolve(reply);
-        });
-    });
+    return;
+};
+const set_user_profile = (userId, profile) => {
+    return;
 };
 
 module.exports = {
     // client,
-    set_user_status
+    set_user_status,
+    set_user_profile
 };
