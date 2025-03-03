@@ -23,9 +23,9 @@ script:
         on_receive:
             if:
                 - regex(var1, 'foo')
-                then:
-                    user_status: 2
-                    set_profile:
+            then:
+                user_status: 2
+                set_profile:
                     name: user_name
             else:
                 user_status: 3
@@ -44,39 +44,72 @@ script:
         jest.clearAllMocks();
     });
 
-
-    it('should send the appropriate message', () => {
-        const message1 = 'Another message with no variables!';
-        const message2 = 'A second message to be sent a few seconds later.';
-        const parser = new RhyzalParser(test_yaml);
-        parser.send(1, {});
-
-        expect(SignalApi.send_message).toHaveBeenCalledWith(message1);
-        expect(SignalApi.send_message).toHaveBeenCalledWith(message2);
-        expect(SignalApi.send_attachment).toHaveBeenCalledWith('filevar');
+    describe('constructor', () => {
+        it('should throw an error for invalid input', () => {
+            const invalid = `
+    invalid_yaml: {{ action }} message {{ message_type }}
+            `;
+            expect(() => new RhyzalParser(invalid)).toThrowError(/^Invalid yaml input/);
+        });
     });
 
-    it ('should send the appropriate message with variables', () => {
-        const message = 'Message with foo to bar!';
-        const vars = {var1: 'foo', var2: 'bar'};
-        const parser = new RhyzalParser(test_yaml);
-        parser.send(0, vars);
-        expect(SignalApi.send_message).toHaveBeenCalledWith(message);
+    describe('send', () => {
+        it('should throw an error if the script is not initialized', () => {
+            const parser = new RhyzalParser('stuff and things');
+            expect(() => parser.send(0, {})).toThrow('Script not initialized');
+        });
+
+        it('should throw an error if the step is missing from the script', () => {
+            const parser = new RhyzalParser(test_yaml);
+            expect(() => parser.send(2, {})).toThrow('Step missing from script');
+        });
+
+        it('should send the appropriate message', () => {
+            const message1 = 'Another message with no variables!';
+            const message2 = 'A second message to be sent a few seconds later.';
+            const parser = new RhyzalParser(test_yaml);
+            parser.send(1, {});
+    
+            expect(SignalApi.send_message).toHaveBeenCalledWith(message1);
+            expect(SignalApi.send_message).toHaveBeenCalledWith(message2);
+            expect(SignalApi.send_attachment).toHaveBeenCalledWith('filevar');
+        });
+    
+        it ('should send the appropriate message with variables', () => {
+            const message = 'Message with foo to bar!';
+            const vars = {var1: 'foo', var2: 'bar'};
+            const parser = new RhyzalParser(test_yaml);
+            parser.send(0, vars);
+            expect(SignalApi.send_message).toHaveBeenCalledWith(message);
+        });
+
     });
 
-    it('should update a user\'s status on receive', () => {
-        const parser = new RhyzalParser(test_yaml);
-        parser.receive(1, {user_id: 1});
-        expect(graphql.set_user_status).toHaveBeenCalledWith(1, 'completed');
-    });
+    describe ('receive', () => {
+        it('should throw an error if the script is not initialized', () => {
+            const parser = new RhyzalParser('stuff and things');
+            expect(() => parser.receive(0, {})).toThrow('Script not initialized');
+        });
 
-    it('should throw an error for invalid input', () => {
-        const invalid = `
-invalid_yaml: {{ action }} message {{ message_type }}
-        `;
-        expect(() => new RhyzalParser(invalid)).toThrowError(/^Invalid yaml input/);
-        const parser2 = new RhyzalParser(test_yaml);
-        expect(() => parser2.send(2, {})).toThrow('Step missing from script');
+        it('should throw an error if the step is missing from the script', () => {
+            const parser = new RhyzalParser(test_yaml);
+            expect(() => parser.send(2, {})).toThrow('Step missing from script');
+        });
+
+   
+
+        it('should update a user\'s status on receive', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.receive(1, {user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 'completed');
+        });
+
+        it ('should update a user\'s status based on a condition', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.receive(0, {user_id: 1, var1: 'foo', time_since_last_message: 20000});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        })
+
     });
 
 });
