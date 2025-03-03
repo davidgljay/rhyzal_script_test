@@ -21,11 +21,10 @@ script:
         send:
             - Message with {{var1}} to {{var2}}!
         on_receive:
-            if:
-                - regex(var1, 'foo')
+            if: regex(var1, 'foo')
             then:
-                user_status: 2
-                set_profile:
+                - user_status: 2
+                - set_profile:
                     name: user_name
             else:
                 user_status: 3
@@ -117,6 +116,46 @@ script:
             const parser = new RhyzalParser(test_yaml);
             parser.evaluate_receive({user_status: 2}, {user_id: 1});
             expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        });
+
+        it('should evaluate an if condition', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({if: 'regex(var1, /foo/)', then: [{user_status: 2}]}, {var1: 'foo', user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        });
+
+        it('should evaluate an if condition with an else', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({if: 'regex(var1, /foo/)', then: [{user_status: 2}], else: [{user_status: 3}]}, {var1: 'bar', user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 3);
+        });
+
+        it('should evaluate an if condition with an and', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({if: {and: ['regex(var1, /foo/)', 'regex(var2, /bar/)']}, then: [{user_status: 2}]}, {var1: 'foo', var2: 'bar', user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+
+        });
+
+        if ('should evaluate an if condition with an and that is falsy', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({if: {and: ['regex(var1, /foo/)', 'regex(var2, /bar/)']}, then: [{user_status: 2}]}, {var1: 'foo', var2: 'foo', user_id: 1});
+            expect(graphql.set_user_status).not.toHaveBeenCalled();
+        });
+
+
+        it('should evaluate an if condition with an or', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({if: {or: ['regex(var1, /foo/)', 'regex(var2, /bar/)']}, then: [{user_status: 2}]}, {var1: 'foo', var2: 'baz', user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+            parser.evaluate_receive({if: {or: ['regex(var1, /foo/)', 'regex(var2, /bar/)']}, then: [{user_status: 2}]}, {var1: 'fuz', var2: 'bar', user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        });
+
+        it ('shold evaluate an if condition with an or that is falsy', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({if: {or: ['regex(var1, /foo/)', 'regex(var2, /bar/)']}, then: [{user_status: 2}]}, {var1: 'fuz', var2: 'baz', user_id: 1});
+            expect(graphql.set_user_status).not.toHaveBeenCalled();
         });
     });
 

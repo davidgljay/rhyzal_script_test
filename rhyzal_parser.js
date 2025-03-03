@@ -65,35 +65,16 @@ class RhyzalParser {
                 set_user_status(vars.user_id, script['user_status']);
                 break;
             case 'if':
-                if (Array.isArray(script.if)) {
-                    if (this.evaluate_condition(script.if[0], vars)) {
-                        this.evaluate_receive(script.then, vars);
+                if (this.evaluate_condition(script.if, vars)) {
+                    for (let i = 0; i < script.then.length; i++) {
+                        this.evaluate_receive(script.then[i], vars);
                     }
-                } else if (typeof script.if === 'object') {
-                    if (this.evaluate_receive(script.if, vars)) {
-                        this.evaluate_receive(script.then, vars); // Handle multiple steps here more elegantly
-                    } else {
-                        this.evaluate_receive(script.else, vars);
+                } else {
+                    if (script.else) {
+                        for (let i = 0; i < script.then.length; i++) {
+                            this.evaluate_receive(script.else[i], vars);
+                        }
                     }
-                }
-                break;
-            case 'or':
-                for (let i = 0; i < script.or.length; i++) {
-                    if (this.evaluate_condition(script.or[i], vars)) {
-                        return true;
-                    }
-                }
-                return false;
-            case 'and':
-                for (let i = 0; i < script.and.length; i++) {
-                    if (!this.evaluate_receive(script.and[i], vars)) {
-                        return false;
-                    }
-                }
-                return true; 
-            case 'then':
-                for (let i = 0; i < script.then.length; i++) {
-                    this.evaluate_receive(script.then[i], vars);
                 }
                 break;
         }
@@ -101,16 +82,32 @@ class RhyzalParser {
 
     evaluate_condition(condition, vars) {
         // If the condition is a regex, evaluate it against a variable
-        if (condition.match(/regex\(([^)]+)\)/)) {
+        if (condition.or) {
+            for (let i = 0; i < condition.or.length; i++) {
+                if (this.evaluate_condition(condition.or[i], vars)) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (condition.and) {
+            for (let i = 0; i < condition.and.length; i++) {
+                if (!this.evaluate_condition(condition.and[i], vars)) {
+                    return false;
+                }
+            }
+            return true;
+        } else  if (condition.match(/regex\(([^)]+)\)/)) {
             const matches = condition.match(/regex\(([^,]+),\s*([^)]+)\)/);
             if (matches) {
                 const var_name = matches[1];
                 let match = matches[2];
                 match.trim();
                 if (match.startsWith('/') && match.endsWith('/')) {
-                    return new RegExp(/foo/).test(vars[var_name]);
+                    match = match.slice(1, -1); // Remove the leading and trailing slashes
+                    return new RegExp(match).test(vars[var_name]);
+                } else {
+                    return vars[var_name] == vars[match];
                 }
-                return vars[var_name] == vars[match];
             }
         } else {
             // If the condition is a variable, return the value of the variable
