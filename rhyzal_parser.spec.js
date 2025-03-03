@@ -13,11 +13,8 @@ describe('rhyzal_parser', () => {
     const test_yaml = `
 script:
     0:
-        variables:
-            var1: function(var)
-            var2: set(user.name)
         send:
-            message: Message with {{var1}} to {{var2}}!
+            - Message with {{var1}} to {{var2}}!
         on_receive:
             if:
                 or:
@@ -48,9 +45,8 @@ script:
     it('should send the appropriate message', () => {
         const message1 = 'Another message with no variables!';
         const message2 = 'A second message to be sent a few seconds later.';
-        SignalApi.send_message('Not the right message')
 
-        parse(test_yaml, 1);
+        parse(test_yaml, 1, {});
         expect(SignalApi.send_message).toHaveBeenCalledWith(message1);
         expect(SignalApi.send_message).toHaveBeenCalledWith(message2);
         expect(SignalApi.send_attachment).toHaveBeenCalledWith('filevar');
@@ -61,5 +57,12 @@ script:
         expect(() => parse(input)).toThrow('Invalid yaml input');
     });
 
-  // Add more test cases as needed
+    it ('should send the appropriate message with variables', () => {
+        const message = 'Message with foo to bar!';
+        const vars = {var1: 'foo', var2: 'bar'};
+
+        parse(test_yaml, 0, vars);
+        expect(SignalApi.send_message).toHaveBeenCalledWith(message);
+    });
+
 });
