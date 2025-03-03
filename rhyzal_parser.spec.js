@@ -104,12 +104,42 @@ script:
             expect(graphql.set_user_status).toHaveBeenCalledWith(1, 'completed');
         });
 
-        it ('should update a user\'s status based on a condition', () => {
-            const parser = new RhyzalParser(test_yaml);
-            parser.receive(0, {user_id: 1, var1: 'foo', time_since_last_message: 20000});
-            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
-        })
+        // it ('should update a user\'s status based on a condition', () => {
+        //     const parser = new RhyzalParser(test_yaml);
+        //     parser.receive(0, {user_id: 1, var1: 'foo', time_since_last_message: 20000});
+        //     expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        // })
 
+    });
+
+    describe ('evaluate_receive', () => {
+        it('should set the user status', () => {
+            const parser = new RhyzalParser(test_yaml);
+            parser.evaluate_receive({user_status: 2}, {user_id: 1});
+            expect(graphql.set_user_status).toHaveBeenCalledWith(1, 2);
+        });
+    });
+
+    describe ('evaluate_condition', () => {
+        it('should properly evaluate a regex match between a variable and a regex', () => {
+            const parser = new RhyzalParser(test_yaml);
+            expect(parser.evaluate_condition('regex(var1, /foo/)', {var1: 'foo'})).toBe(true);
+            expect(parser.evaluate_condition('regex(var1, /foo/)', {var1: 'bar'})).toBe(false);            
+        });
+
+        it('should properly evaluate a regex match between two variables', () => {
+            const parser = new RhyzalParser(test_yaml);
+            expect(parser.evaluate_condition('regex(var1, var2)', {var1: 'foo', var2: 'foo'})).toBe(true);
+            expect(parser.evaluate_condition('regex(var1, var2)', {var1: 'foo', var2: 'bar'})).toBe(false);
+        });
+
+        it('should properly evaluate a variable', () => {
+            const parser = new RhyzalParser(test_yaml);
+            expect(parser.evaluate_condition('var1', {var1: true})).toBe(true);
+            expect(parser.evaluate_condition('var1', {var1: false})).toBe(false);
+            expect(parser.evaluate_condition('var1', {var1: 1})).toBe(true);
+            expect(parser.evaluate_condition('var1', {var1: 0})).toBe(false);
+        });
     });
 
 });

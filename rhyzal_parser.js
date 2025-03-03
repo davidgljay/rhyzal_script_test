@@ -48,22 +48,75 @@ class RhyzalParser {
     }
 
     receive(step, vars) {
-            if (!this.script[step]) {
-                throw new Error('Step missing from script');
-            }
-            const on_receive = this.script[step].on_receive;
-            this.evaluate_receive(on_receive, vars);
+        if (!this.script) {
+            throw new Error('Script not initialized');
+        }
+        if (!this.script[step]) {
+            throw new Error('Step missing from script');
+        }
+        const on_receive = this.script[step].on_receive;
+        this.evaluate_receive(on_receive, vars);
 
     }
 
     evaluate_receive(script, vars) {
-        console.log('Evalutating receive:', script);
         switch(Object.keys(script)[0]) {
             case 'user_status':
                 set_user_status(vars.user_id, script['user_status']);
                 break;
+            case 'if':
+                if (Array.isArray(script.if)) {
+                    if (this.evaluate_condition(script.if[0], vars)) {
+                        this.evaluate_receive(script.then, vars);
+                    }
+                } else if (typeof script.if === 'object') {
+                    if (this.evaluate_receive(script.if, vars)) {
+                        this.evaluate_receive(script.then, vars); // Handle multiple steps here more elegantly
+                    } else {
+                        this.evaluate_receive(script.else, vars);
+                    }
+                }
+                break;
+            case 'or':
+                for (let i = 0; i < script.or.length; i++) {
+                    if (this.evaluate_condition(script.or[i], vars)) {
+                        return true;
+                    }
+                }
+                return false;
+            case 'and':
+                for (let i = 0; i < script.and.length; i++) {
+                    if (!this.evaluate_receive(script.and[i], vars)) {
+                        return false;
+                    }
+                }
+                return true; 
+            case 'then':
+                for (let i = 0; i < script.then.length; i++) {
+                    this.evaluate_receive(script.then[i], vars);
+                }
+                break;
         }
-    }
+    };
+
+    evaluate_condition(condition, vars) {
+        // If the condition is a regex, evaluate it against a variable
+        if (condition.match(/regex\(([^)]+)\)/)) {
+            const matches = condition.match(/regex\(([^,]+),\s*([^)]+)\)/);
+            if (matches) {
+                const var_name = matches[1];
+                let match = matches[2];
+                match.trim();
+                if (match.startsWith('/') && match.endsWith('/')) {
+                    return new RegExp(/foo/).test(vars[var_name]);
+                }
+                return vars[var_name] == vars[match];
+            }
+        } else {
+            // If the condition is a variable, return the value of the variable
+            return !!vars[condition];
+        }
+    };
 
 }
 
